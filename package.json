@@ -6,13 +6,17 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "bcrypt": "^1.0.3",
     "body-parser": "~1.17.1",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.3",
     "express": "^4.15.5",
+    "express-validator": "^4.2.1",
     "jade": "~1.11.0",
     "morgan": "~1.8.1",
     "mustache-express": "^1.2.5",
+    "mysql": "^2.14.1",
+    "node-session": "^1.2.1",
     "serve-favicon": "~2.4.2"
   }
 }
