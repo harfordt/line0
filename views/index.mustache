@@ -1,11 +1,25 @@
 {{> head}}
-{{> nav}}
-<div class='container'
-  <p>Welcome to {{ title }}!</p>
-  <ul>
-    {{#lusers}}
-    <li>{{name}} - {{so}}</li>
-    {{/lusers}}
-  </ul>
-</div>
-{{> foot}}
+<link href="stylesheets/signin.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+
+        <form class="form-signin" method="post" action="login">
+            <h2 class="form-signin-heading">Please sign in</h2>
+            <label for="email" class="sr-only">Email address</label>
+            <input type="email" id="email" name="email" class="form-control" placeholder="Email address" required autofocus>
+            <label for="password" class="sr-only">Password</label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
+            <button class="btn btn-lg btn-primary btn-block" type="submit" value="Submit">Sign in</button>
+            <button id="regobutton" class="btn btn-lg btn-link btn-block">Register</button>
+        </form>
+    </div>
+    {{> foot}}
+    <script>
+        $('#regobutton').on('click', function(event) {
+            event.preventDefault();
+            window.location = "/register";
+        });
+
+    </script>
