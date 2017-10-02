@@ -1,7 +1,51 @@
 {{> head}}
 {{> nav}}
 <div class='container'>
-  <p>{{ title }}</p>
+  <h1>{{title}}</h1>
+    <h2>{{teacherid}}</h2>
+    <h2>{{firstname}}</h2>
+    <h2>{{lastname}}</h2>
+    <h2>{{username}}</h2>
+    <h2>{{department}}</h2>
+    {{#classexists}}
+    class exists
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#confirmClose">Close class</button>
+    {{/classexists}}
     
+    {{^classexists}}
+        <button id="createclass" type="button" class="btn btn-primary">Create a class</button>
+    class doesn't exist
+    {{/classexists}}
+</div>
+<!-- Modal -->
+<div class="modal fade" id="confirmClose" tabindex="-1" role="dialog" aria-labelledby="confirmCloseLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmCloseLabel">Confirm close</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        This will end the current class, removing all students. You cannot re-open a class.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button id="closeclass" type="button" class="btn btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
 </div>
 {{> foot}}
+<script>
+        $('#createclass').on('click', function(event) {
+            window.location = "/createclass";
+        });
+        $('#closeclass').on('click', function(event) {
+            event.preventDefault();
+            
+            window.location = "/closeclass";
+        });
+
+    </script>
