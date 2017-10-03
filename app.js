@@ -247,7 +247,8 @@ app.use('/createclass', function (req, res) {
         } else {
             var periodId = result[0].id;
         }
-        var insert = `INSERT INTO class (id, teacherid, periodid, classname, createdat) VALUES (NULL, '${teacherid}', '${periodId}', 'banana', CURRENT_TIMESTAMP)`;
+        var newClassName = req.query.newclassname;
+        var insert = `INSERT INTO class (id, teacherid, periodid, classname, createdat) VALUES (NULL, '${teacherid}', '${periodId}', '${newClassName}', CURRENT_TIMESTAMP)`;
         console.log(insert);
         con.query(insert, function (err, result) {
             if (err) {
