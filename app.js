@@ -69,7 +69,8 @@ var con = mysql.createConnection({
     host: "localhost",
     user: "root",
     password: "",
-    database: "line0"
+    database: "line0",
+    dateStrings: true
 });
 
 
@@ -99,9 +100,6 @@ app.get('/', sessionChecker, (req, res) => {
 //app.use('/index', index);
 app.use('/users', users);
 // app.use('/register', register);
-
-
-
 
 
 app.use('/login', sessionChecker, function (req, res) {
@@ -154,7 +152,6 @@ app.use('/login', sessionChecker, function (req, res) {
     });
 });
 
-
 function updateClasses(req, res, next) {
     var weekdays = new Array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     var currentDay = weekdays[new Date().getDay()];
@@ -169,7 +166,6 @@ function updateClasses(req, res, next) {
     // might delete this function - meant to automatically close old classes?
     next();
 }
-
 
 app.use('/manageclass', updateClasses, function (req, res) {
 
@@ -202,7 +198,7 @@ app.use('/manageclass', updateClasses, function (req, res) {
                 console.error('error connecting: ' + err.stack);
                 return;
             }
-            console.log(result);
+            //            console.log(result);
             if (result.length == 0) {
                 res.render('manageclass', {
                     title: 'Manage a class',
@@ -214,9 +210,13 @@ app.use('/manageclass', updateClasses, function (req, res) {
                     department: dept
                 });
             } else {
+                var class_name = result[0].classname;
+                var class_id = result[0].id;
+                `SELECT * FROM class_students WHERE classid='${class_id}';`;
                 res.render('manageclass', {
                     title: 'Manage a class',
                     classexists: true,
+                    classname: class_name,
                     teacherid: teacherid,
                     firstname: fname,
                     lastname: lname,
@@ -230,24 +230,28 @@ app.use('/manageclass', updateClasses, function (req, res) {
 
 app.use('/createclass', function (req, res) {
     /*
-    
+        1) gather up the:
+            a) teacherid from the session (to associate the class with)
+            b) id of the day/period
+            c) name of the class (from GET)
+        2) insert into the class table, then redirect
     */
     var teacherid = req.session.teacherid;
+    var newClassName = req.query.newclassname;
     var weekdays = new Array("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")
     var currentDay = weekdays[new Date().getDay()];
     var getPeriodId = `SELECT id FROM timetable WHERE starttime<curtime() AND endtime>curtime() AND day='${currentDay}';`;
-    console.log(getPeriodId);
+
     con.query(getPeriodId, function (err, result) {
         if (err) {
             console.error('error connecting: ' + err.stack);
             return;
         }
         if (result.length == 0) {
-            var periodId = 31;
+            var periodId = 31; // this is a dud flag value, if you try to create a class out of school hours
         } else {
             var periodId = result[0].id;
         }
-        var newClassName = req.query.newclassname;
         var insert = `INSERT INTO class (id, teacherid, periodid, classname, createdat) VALUES (NULL, '${teacherid}', '${periodId}', '${newClassName}', CURRENT_TIMESTAMP)`;
         console.log(insert);
         con.query(insert, function (err, result) {
@@ -261,51 +265,71 @@ app.use('/createclass', function (req, res) {
     });
 });
 
-
-
 app.use('/closeclass', function (req, res) {
     /*
         Duplicates the existing class into an archive table then deletes it
     */
     var teacherid = req.session.teacherid;
     var selectclass = `SELECT * FROM class WHERE teacherid='${teacherid}';`;
+
     con.query(selectclass, function (err, result) {
         if (err) {
             console.error('error connecting: ' + err.stack);
             return;
         }
         var clas = result[0]; // can't name a variable class :()
+        console.log("\n\n" + clas.createdat + "\n\n");
         var insertcopy = `INSERT INTO class_closed (id, teacherid, periodid, classname, createdat) VALUES ('${clas.id}', '${teacherid}', '${clas.periodid}', '${clas.classname}', '${clas.createdat}');`;
+        //        var selectstudents = `INSERT INTO class_students_closed SELECT * FROM class_students WHERE id='${clas.id}';DELETE FROM class_students WHERE classid='${clas.id}';`;
         console.log(insertcopy);
         con.query(insertcopy, function () {
             if (err) {
                 console.error('error connecting: ' + err.stack);
                 return;
             }
-            var deleteoriginal = `DELETE FROM class WHERE teacherid='${teacherid}';`;
-            console.log(deleteoriginal);
-            con.query(deleteoriginal, function (err, result) {
+            var copystudents = `INSERT INTO class_students_closed SELECT * FROM class_students WHERE classid=${clas.id};`;
+            //DELETE FROM class WHERE teacherid='${req.session.teacherid}';
+            console.log("DELETE ORIGINALS AND MOVE STUDENTS")
+            console.log(copystudents);
+            con.query(copystudents, function (err, result) {
                 if (err) {
                     console.error('error connecting: ' + err.stack);
                     return;
                 }
-                console.log('redirecting');
-                res.redirect('/manageclass');
+                var deletestudents = `DELETE FROM class_students WHERE classid=${clas.id};`;
+                con.query(deletestudents, function () {
+                    if (err) {
+                        console.error('error connecting: ' + err.stack);
+                        return;
+                    }
+                    var deleteclass = `DELETE FROM class WHERE teacherid='${req.session.teacherid}';`;
+                    console.log("DELETE CLASS");
+                    console.log(deleteclass);
+                    con.query(deleteclass, function () {
+                        if (err) {
+                            console.error('error connecting: ' + err.stack);
+                            return;
+                        }
+                    });
+
+                    console.log('redirecting');
+                    res.redirect('/manageclass');
+                });
             });
         });
     });
 });
-
 app.use('/register', function (req, res) {
     res.render('register', {
         title: 'Register'
     });
 });
 
-
-
 app.use('/newstaff', function (req, res) {
-    console.log('oh yeah, have some banana');
+    /*
+        - collecct up all the data from GET then insert into the user table
+        - need to validate+sanitize
+    */
     var firstname = req.body.firstname;
     var lastname = req.body.lastname;
     var username = req.body.username;
@@ -317,20 +341,12 @@ app.use('/newstaff', function (req, res) {
     if (password != password2) {
         console.log("passwords don't match");
     }
-    console.log(firstname);
-    console.log(lastname);
-    console.log(username);
-    console.log(email);
-    console.log(department);
-    console.log(password);
-    console.log(password2);
+
     //connect to the database and insert
     var hashed_password = "";
     bcrypt.hash(password, 10, function (err, hash) {
         hashed_password = hash;
-        //        console.log("hashed: " + hashed_password);
         var insert = `INSERT INTO staff (id, firstname, lastname, username, email, password, department) VALUES (NULL, '${firstname}', '${lastname}', '${username}', '${email}', '${hashed_password}', '${department}');`;
-        //        console.log(insert);
         con.query(insert, function (err, result) {
             if (err) {
                 console.error('error connecting: ' + err.stack);
@@ -342,6 +358,29 @@ app.use('/newstaff', function (req, res) {
     res.redirect('/register');
 });
 
+app.use('/checkin', function (req, res) {
+    console.log("checking in a student");
+    var thisStudentId = req.body.studentid;
+    var teacherid = req.session.teacherid;
+    var getTeacher = `SELECT id FROM class WHERE teacherid='${teacherid}';`;
+    con.query(getTeacher, function (err, result) {
+        if (err) {
+            console.error('error connecting: ' + err.stack);
+            return;
+        }
+        console.log(result[0]);
+        var classId = result[0].id;
+        console.log("got class id" + classId);
+        var checkIn = `INSERT INTO class_students (id, studentid, classid, checkintime) VALUES (NULL, '${thisStudentId}', '${classId}', CURRENT_TIMESTAMP);`;
+        con.query(checkIn, function (err, result) {
+            if (err) {
+                console.error('error connecting: ' + err.stack);
+                return;
+            }
+            console.log("student added to class");
+        });
+    });
+});
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
