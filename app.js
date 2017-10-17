@@ -212,16 +212,24 @@ app.use('/manageclass', updateClasses, function (req, res) {
             } else {
                 var class_name = result[0].classname;
                 var class_id = result[0].id;
-                `SELECT * FROM class_students WHERE classid='${class_id}';`;
-                res.render('manageclass', {
-                    title: 'Manage a class',
-                    classexists: true,
-                    classname: class_name,
-                    teacherid: teacherid,
-                    firstname: fname,
-                    lastname: lname,
-                    username: uname,
-                    department: dept
+                var studentsInClass = `SELECT student.wgcid, student.firstname, student.lastname, student.image FROM student, class_students WHERE class_students.classid=${class_id} AND class_students.studentid=student.wgcid`;
+                console.log(studentsInClass);
+                con.query(studentsInClass, function (err, studentDetailsList) {
+                    if (err) {
+                        console.error('error connecting: ' + err.stack);
+                        return;
+                    }
+                    res.render('manageclass', {
+                        title: 'Manage a class',
+                        classexists: true,
+                        classname: class_name,
+                        teacherid: teacherid,
+                        firstname: fname,
+                        lastname: lname,
+                        username: uname,
+                        department: dept,
+                        students: studentDetailsList
+                    });
                 });
             }
         });
